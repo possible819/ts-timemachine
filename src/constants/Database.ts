@@ -1,4 +1,6 @@
-export const Database = {
+import { DatabaseConfInterface, FieldTypes } from '../interfaces'
+
+export const DEFAULT_DB_CONFIG: DatabaseConfInterface = {
   DB_NAME: 'tm_db',
   DB_VERSION: '1.0.0',
   DB_DESC: 'tm_db',
@@ -6,39 +8,43 @@ export const Database = {
   TABLES: {
     tm_auth: {
       encrypted_pwd: {
-        type: 'text',
+        type: FieldTypes.text,
         notNull: true,
       },
     },
     tm_diaries: {
       id: {
-        type: 'integer',
+        type: FieldTypes.integer,
         idField: true,
       },
       fileName: {
-        type: 'text',
+        type: FieldTypes.text,
         notNull: true,
       },
       year: {
-        type: 'text',
+        type: FieldTypes.text,
         notNull: true,
       },
       month: {
-        type: 'text',
+        type: FieldTypes.text,
         notNull: true,
       },
       date: {
-        type: 'text',
+        type: FieldTypes.text,
         notNull: true,
       },
       preview: {
-        type: 'text',
+        type: FieldTypes.text,
         notNull: true,
       },
       content: {
-        type: 'text',
+        type: FieldTypes.text,
         notNull: true,
       },
     },
   },
-} as const
+}
+
+// TABLES: {
+
+// },

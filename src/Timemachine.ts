@@ -1,22 +1,37 @@
-import { LocalStorageKeyTypes, EventTypes } from './enums'
-import { localStorageUtil, deviceUtil } from './utils'
-import { Themes, ThemeObj } from './constants'
-import { ThemeUtil } from './utils/ThemeUtil'
-import { StatusbarUtil } from './controllers/Statusbar'
+import { ThemeObj } from './constants'
+import { WebDatabase } from './controllers/WebDatabase'
+import { DateUtil } from './DateUtil'
+import { HeaderUI } from './HeaderUI'
+import { deviceUtil, themeUtil } from './utils'
+import { ViewerUI } from './ViewerUI'
 
 export default class Timemachine {
   private theme: ThemeObj
+  private webDatabase: WebDatabase
+  private headerUI: HeaderUI
+  private viewerUI: ViewerUI
+
+  public stdDateUtil: DateUtil
+  public currentDateUtil: DateUtil
 
   constructor() {
-    this.theme = ThemeUtil.getThemeColorSet()
+    this.stdDateUtil = new DateUtil()
+    this.currentDateUtil = new DateUtil()
+
+    this.theme = themeUtil.getThemeColorSet()
+    this.webDatabase = new WebDatabase()
+    this.headerUI = new HeaderUI(this.stdDateUtil, this.currentDateUtil)
+    this.viewerUI = new ViewerUI(this.currentDateUtil)
   }
 
   public initializeApplication(): void {
     this.adjustTheme()
+    // this.registerEventListeners()
+    this.headerUI.showCommonHeader()
   }
 
   private adjustTheme(): void {
-    ThemeUtil.adjustTheme(this.theme)
+    themeUtil.adjustTheme(this.theme)
 
     if (deviceUtil.isMobileDevice()) {
       StatusbarUtil.overlayWebView(false)

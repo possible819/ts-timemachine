@@ -2,7 +2,7 @@ import { localStorageUtil } from './localStorageUtil'
 import { LocalStorageKeyTypes, EventTypes } from '../enums'
 import { Themes, ThemeObj } from '../constants'
 
-export const ThemeUtil = {
+export const themeUtil = {
   /**
    * @description It will return current theme if there's no passed themeName
    * If passed themeName is exists but it's not proper name of themes, it will return

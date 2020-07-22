@@ -1,26 +1,31 @@
-import { Database as DatabaseConf } from '../constants'
-
-interface TableMeta {
-  [tableName: string]: Table
-}
-
-interface Table {
-  [fieldName: string]: Field
-}
-
-interface Field {
-  type: string
-  idField?: boolean
-  notNull?: boolean
-}
+import { DEFAULT_DB_CONFIG } from '../constants'
+import {
+  DatabaseConfInterface,
+  FieldInterface,
+  TableInterface,
+} from '../interfaces'
 
 export class WebDatabase {
-  private dbConf: typeof DatabaseConf
+  private dbConf: DatabaseConfInterface
   private database: Database
 
-  constructor() {
+  private defaultCallback: SQLStatementCallback = (
+    _trx: SQLTransaction,
+    resultSet: SQLResultSet
+  ) => {
+    return this.getResultFromRows(resultSet.rows)
+  }
+
+  private defaultErrorCallback: SQLStatementErrorCallback = (
+    _trx: SQLTransaction,
+    error: SQLError
+  ): boolean => {
+    throw error
+  }
+
+  constructor(databaseConf: DatabaseConfInterface = DEFAULT_DB_CONFIG) {
     try {
-      this.dbConf = DatabaseConf
+      this.dbConf = databaseConf
       this.database = this.createDatabase()
       this.createTables(this.dbConf.TABLES)
     } catch (e) {
@@ -37,24 +42,27 @@ export class WebDatabase {
     )
   }
 
-  private createTables(tables: TableMeta): void {
+  private createTables(tables: TableInterface): void {
     try {
       for (const tableName in tables) {
         const createTableSql: string = this.getCreateTableSql(
           tableName,
           tables[tableName]
         )
-        await doTransaction(createTableSql)
+        this.doTransaction(createTableSql)
       }
     } catch (e) {
       throw new Error(e)
     }
   }
 
-  private getCreateTableSql(tableName: string, table: Table): string {
+  private getCreateTableSql(
+    tableName: string,
+    table: { [field: string]: FieldInterface }
+  ): string {
     return Object.keys(table).reduce(
       (sql: string, fieldName: string, idx: number, fieldNames: string[]) => {
-        const field: Field = table[fieldName]
+        const field: FieldInterface = table[fieldName]
 
         sql += `
           ${fieldName}
@@ -70,9 +78,34 @@ export class WebDatabase {
     )
   }
 
-  private async doTransaction(sql: string, args: any[] = []): Promise<void> {
-    this.database.transaction((trx: SQLTransaction) => {
-      trx.executeSql(sql, args)
+  private async doTransaction(
+    sql: string,
+    args: any[] = [],
+    callback: SQLStatementCallback = this.defaultCallback,
+    errorCallback: SQLStatementErrorCallback = this.defaultErrorCallback
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.database.transaction((trx: SQLTransaction) => {
+        trx.executeSql(
+          sql,
+          args,
+          (trx: SQLTransaction, resultSet: SQLResultSet) => {
+            resolve(callback(trx, resultSet))
+          },
+          (trx: SQLTransaction, error: SQLError): any => {
+            reject(errorCallback(trx, error))
+          }
+        )
+      })
     })
+  }
+
+  private getResultFromRows(rows: SQLResultSetRowList): any[] {
+    let resultList: any[] = []
+    for (let i: number = 0; i < rows.length; i++) {
+      resultList.push(rows.item(i))
+    }
+
+    return resultList
   }
 }
