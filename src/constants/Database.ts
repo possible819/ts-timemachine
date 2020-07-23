@@ -44,7 +44,3 @@ export const DEFAULT_DB_CONFIG: DatabaseConfInterface = {
     },
   },
 }
-
-// TABLES: {
-
-// },

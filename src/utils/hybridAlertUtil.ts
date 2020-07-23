@@ -6,19 +6,20 @@ declare global {
         title: string,
         message: string,
         options: AlertOption[],
-        callback: (selected: string) => void,
-        errorCallback: (error: string) => void
+        callback: (event: string) => void,
+        errorCallback: (errorMessage: string) => void
       ) => void
     }
   }
 }
 
-export type AlertOption = {
+interface AlertOption {
   name: string
   callback: () => void
+  style: { [key: string]: string }
 }
 
-export type AlertConfig = {
+interface AlertConfig {
   type: string
   title: string
   message: string
@@ -26,13 +27,16 @@ export type AlertConfig = {
 }
 
 export class HybridAlert {
-  private modal
-  private alertBox
-  private titleField
-  private messageField
-  private buttonContainer
+  private webAlert: HTMLDivElement | undefined
+  private modal: HTMLDivElement | undefined
+  private alertBox: HTMLDivElement | undefined
+  private titleField: HTMLParagraphElement | undefined
+  private messageField: HTMLSpanElement | undefined
+  private buttonContainer: HTMLDivElement | undefined
 
-  openConfirm(config: AlertConfig): void {
+  constructor() {}
+
+  openConfirm(config: AlertConfig) {
     if (this.isNativeAvail()) {
       this.mobileConfirm(config)
     } else {
@@ -40,35 +44,38 @@ export class HybridAlert {
     }
   }
 
-  mobileConfirm(config: AlertConfig): void {
+  mobileConfirm(config: AlertConfig) {
     window.NativeAlert.alert(
       config.type,
       config.title,
       config.message,
       config.options,
-      (selected) => {
-        const selectedOption: AlertOption | undefined = config.options.find(
-          (option: AlertOption) => option.name === selected
-        )
-        if (
-          selectedOption?.callback &&
-          typeof selectedOption.callback === 'function'
-        )
-          selectedOption.callback()
+      (event: string) => {
+        config.options.forEach((option) => {
+          if (
+            option.name === event &&
+            option.callback &&
+            typeof option.callback === 'function'
+          ) {
+            option.callback()
+          }
+        })
       },
-      (error) => {
-        throw new Error(error)
+      (errorMessage: string) => {
+        throw new Error(errorMessage)
       }
     )
   }
 
-  webConfirm(config: AlertConfig): void {
-    if (this.webAlert) this.webAlert.remove()
+  webConfirm(config: AlertConfig) {
+    if (this.webAlert) {
+      this.webAlert.remove()
+    }
     this.webAlert = this.getWebAlert(config)
     document.body.appendChild(this.webAlert)
   }
 
-  getWebAlert(config: AlertConfig): HTMLDivElement {
+  getWebAlert(config: AlertConfig) {
     this.modal = this.getModal()
     this.alertBox = this.getAlertBox()
     this.titleField = this.getTitleField(config.title)
@@ -81,14 +88,14 @@ export class HybridAlert {
     this.alertBox.appendChild(this.messageField)
     this.alertBox.appendChild(this.buttonContainer)
     buttonElements.forEach((button) => {
-      this.buttonContainer.appendChild(button)
+      this.buttonContainer?.appendChild(button)
     })
 
     return this.modal
   }
 
-  getModal() {
-    this.modal = this.generateElmentWithStyles({
+  private getModal(): HTMLDivElement {
+    this.modal = this.generateElmentWithStyles<HTMLDivElement>({
       name: 'div',
       style: {
         position: 'absolute',
@@ -104,8 +111,8 @@ export class HybridAlert {
     return this.modal
   }
 
-  getAlertBox() {
-    this.alertBox = this.generateElmentWithStyles({
+  private getAlertBox(): HTMLDivElement {
+    this.alertBox = this.generateElmentWithStyles<HTMLDivElement>({
       name: 'div',
       style: {
         margin: 'auto',
@@ -118,8 +125,8 @@ export class HybridAlert {
     return this.alertBox
   }
 
-  getTitleField(title) {
-    this.titleField = this.generateElmentWithStyles({
+  private getTitleField(title: string): HTMLParagraphElement {
+    this.titleField = this.generateElmentWithStyles<HTMLParagraphElement>({
       name: 'p',
       style: {
         fontSize: '2.5vh',
@@ -131,8 +138,8 @@ export class HybridAlert {
     return this.titleField
   }
 
-  getMessageField(message) {
-    this.messageField = this.generateElmentWithStyles({
+  private getMessageField(message: string): HTMLSpanElement {
+    this.messageField = this.generateElmentWithStyles<HTMLSpanElement>({
       name: 'span',
       style: {
         marginLeft: '2vh',
@@ -143,8 +150,8 @@ export class HybridAlert {
     return this.messageField
   }
 
-  getButtonContainer() {
-    this.buttonContainer = this.generateElmentWithStyles({
+  private getButtonContainer(): HTMLDivElement {
+    this.buttonContainer = this.generateElmentWithStyles<HTMLDivElement>({
       name: 'div',
       style: {
         display: 'grid',
@@ -157,10 +164,10 @@ export class HybridAlert {
     return this.buttonContainer
   }
 
-  getButtons(options) {
-    const buttonElements = []
+  private getButtons(options: AlertOption[]): HTMLButtonElement[] {
+    const buttonElements: HTMLButtonElement[] = []
     options.forEach((option) => {
-      const button = this.generateElmentWithStyles({
+      const button = this.generateElmentWithStyles<HTMLButtonElement>({
         name: 'button',
         style: {
           padding: '1vh 1vw',
@@ -172,7 +179,7 @@ export class HybridAlert {
       })
       button.innerText = option.name
       button.onclick = () => {
-        this.webAlert.remove()
+        this.webAlert?.remove()
         if (option.callback && typeof option.callback === 'function') {
           option.callback()
         }
@@ -184,22 +191,18 @@ export class HybridAlert {
     return buttonElements
   }
 
-  generateElmentWithStyles(option: {
-    name: string
-    style: { [key: string]: any }
-  }) {
-    const element: any = document.createElement(option.name) as HTMLElement
-
+  private generateElmentWithStyles<T>(option: { [key: string]: any }): T {
+    const element = document.createElement(option.name)
     for (let key in option.style) {
       if (option.style[key]) {
         element.style[key] = option.style[key]
       }
     }
 
-    return element
+    return element as T
   }
 
-  isNativeAvail(): boolean {
+  private isNativeAvail(): boolean {
     return 'NativeAlert' in window
   }
 }

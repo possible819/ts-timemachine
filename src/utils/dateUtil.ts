@@ -1,4 +1,9 @@
-type DateObjType = {
+/**
+ * @author Jay Lee <jaylee.possible@gmail.com>
+ * @description  Date 객체를 핸들링하기 위한 util class
+ */
+
+export interface DateObj {
   year: number
   month: number
   date: number
@@ -8,7 +13,7 @@ type DateObjType = {
 export class DateUtil {
   private _date: Date = new Date()
 
-  constructor(date?: string) {
+  constructor(date: number) {
     this.date = date ? new Date(date) : new Date()
     this.date.setHours(0, 0, 0, 0)
   }
@@ -17,15 +22,14 @@ export class DateUtil {
     return this._date
   }
 
-  set date(date: Date) {
+  set date(date) {
     if (this._date !== date) {
       this._date = date
     }
   }
 
-  public setYearMonth(year: number, month: number): void {
-    let newDate: Date = new Date(this.date.setFullYear(year))
-    this.date = new Date(newDate.setMonth(month - 1))
+  public setYearMonth(year: number, month: number) {
+    this.date = new Date(this.date.setFullYear(year, month - 1))
   }
 
   public getDate(): number {
@@ -37,8 +41,12 @@ export class DateUtil {
     this.date = new Date(newDate.setDate(date))
   }
 
-  public getDateObj(): DateObjType {
-    const days: string[] = [
+  /**
+   * @description date의 연, 월, 일, 요일을 객체 형태로 리턴함
+   * @returns {Object} date 연, 월, 일, 요일 정보
+   */
+  public getDateObj(): DateObj {
+    const days = [
       '일요일',
       '월요일',
       '화요일',
@@ -47,7 +55,6 @@ export class DateUtil {
       '금요일',
       '토요일',
     ]
-
     return {
       year: this.date.getFullYear(),
       month: this.date.getMonth() + 1,
@@ -57,19 +64,19 @@ export class DateUtil {
   }
 
   public getPrevYearMonthStr(): string {
-    const dateObj: DateObjType = this.getDateObj()
+    const dateObj: DateObj = this.getDateObj()
     return `${dateObj.year}년 ${
       dateObj.month - 1 === 0 ? 12 : dateObj.month - 1
     }월`
   }
 
   public getYearMonthStr(): string {
-    const dateObj: DateObjType = this.getDateObj()
+    const dateObj: DateObj = this.getDateObj()
     return `${dateObj.year}년 ${dateObj.month}월`
   }
 
   public getNextYearMonthStr(): string {
-    const dateObj: DateObjType = this.getDateObj()
+    const dateObj: DateObj = this.getDateObj()
     return `${dateObj.year}년 ${
       dateObj.month + 1 === 13 ? 1 : dateObj.month + 1
     }월`
@@ -80,7 +87,7 @@ export class DateUtil {
    * @return {String} 날짜 문자열 xxxx년 x월 x일
    */
   public getFullDateStr(): string {
-    const dateObj: DateObjType = this.getDateObj()
+    const dateObj: DateObj = this.getDateObj()
     return `${dateObj.year}년 ${dateObj.month}월 ${dateObj.date}일 ${dateObj.day}`
   }
 
@@ -102,7 +109,7 @@ export class DateUtil {
   }
 
   public getNextMonthFirstDay(): number {
-    let date: Date = new Date(this.date)
+    let date = new Date(this.date)
     date.setMonth(date.getMonth() + 1)
     date.setDate(1)
     return date.getDay()
@@ -119,7 +126,7 @@ export class DateUtil {
    * @returns {Integer} date의 해당 월 마지막 일
    */
   public getLastDate(): number {
-    let date: Date = new Date(this.date)
+    let date = new Date(this.date)
     date.setMonth(date.getMonth() + 1)
     date.setDate(0)
     return date.getDate()
@@ -137,8 +144,8 @@ export class DateUtil {
    * 첫번째 일이 일요일이 아닐 경우 첫번째 일의 요일 까지 공백을 집어 넣어 리턴함 (calendar용도)
    * @returns {Array} date의 해당 월 첫번째 일 부터 마지막 일 배열
    */
-  public getDateRange(): (number | string)[] {
-    let dateRange: (number | string)[] = []
+  public getDateRange(): (string | number)[] {
+    let dateRange: (string | number)[] = []
     if (this.getFirstDay() > 0) {
       for (let emptyDate = 0; emptyDate < this.getFirstDay(); emptyDate++) {
         dateRange.push('')
@@ -152,17 +159,17 @@ export class DateUtil {
   }
 
   public getYearStr(): string {
-    let dateObj: DateObjType = this.getDateObj()
+    let dateObj = this.getDateObj()
     return dateObj.year.toString()
   }
 
   public getMonthStr(): string {
-    let dateObj: DateObjType = this.getDateObj()
+    let dateObj = this.getDateObj()
     return dateObj.month.toString()
   }
 
   public getDateStr(): string {
-    let dateObj: DateObjType = this.getDateObj()
+    let dateObj = this.getDateObj()
     return dateObj.date.toString()
   }
 
@@ -171,8 +178,8 @@ export class DateUtil {
   }
 
   public isToday(): boolean {
-    const currentDate: Date = new Date()
+    const currentDate = new Date()
     currentDate.setHours(0, 0, 0, 0)
-    return this.date.toJSON() === currentDate.toJSON()
+    return this.date.getTime() === currentDate.getTime()
   }
 }
