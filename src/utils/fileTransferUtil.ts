@@ -1,26 +1,46 @@
-const PLATFORM_ANDROID = 'ANDROID'
-const PLATFORM_IOS = 'IOS'
-const PLATFORM_OTHER = 'OTHER'
+import { File, Server } from '../constants'
 
-class FileTransferUtil {
+declare global {
+  interface Window {
+    cordova: {
+      platformId: string
+      file: any
+    }
+    resolveLocalFileSystemURL: any
+  }
+}
+
+const enum Platforms {
+  Android,
+  iOS,
+  Other,
+}
+
+export class FileTransferUtil {
+  private isMobileAvailable: boolean = false
+  private platform: Platforms
+  private intialized: boolean = false
+
   constructor() {
     this.isMobileAvailable = this.checkAvailability()
     this.platform = this.getCurrentPlatform()
   }
 
-  checkAvailability() {
+  private checkAvailability(): boolean {
     return 'cordova' in window && 'file' in window.cordova
   }
 
-  getCurrentPlatform() {
+  private getCurrentPlatform(): Platforms {
     if ('cordova' in window && 'platformId' in window.cordova) {
-      return cordova.platformId === 'android' ? PLATFORM_ANDROID : PLATFORM_IOS
+      return window.cordova.platformId === 'android'
+        ? Platforms.Android
+        : Platforms.iOS
     } else {
-      return PLATFORM_OTHER
+      return Platforms.Other
     }
   }
 
-  storageInitialize() {
+  private storageInitialize(): void {
     this.intialized = true
     const basePath = this.getDocumentDirectoryPath()
     let filePath = this.getFilePath()
@@ -37,21 +57,24 @@ class FileTransferUtil {
       })
   }
 
-  getDocumentDirectoryPath() {
-    return this.platform === PLATFORM_ANDROID
-      ? cordova.file.externalRootDirectory
-      : cordova.file.documentsDirectory
+  private getDocumentDirectoryPath(): any {
+    return this.platform === Platforms.Android
+      ? window.cordova.file.externalRootDirectory
+      : window.cordova.file.documentsDirectory
   }
 
-  createDir(dirEntry, dirs, index) {
-    dirEntry.getDirectory(dirs[index], { create: true }, (dirEntry) => {
+  private createDir(dirEntry: any, dirs: any, index: any): void {
+    dirEntry.getDirectory(dirs[index], { create: true }, (dirEntry: any) => {
       if (dirs[++index]) {
         this.createDir(dirEntry, dirs, index)
       }
     })
   }
 
-  readFiles(dirPath, callback) {
+  public readFiles(
+    dirPath: string,
+    callback: (fileEntries: any) => void
+  ): void {
     if (this.isMobileAvailable) {
       if (!this.intialized) {
         this.storageInitialize()
@@ -63,25 +86,31 @@ class FileTransferUtil {
     }
   }
 
-  mobileReadFiles(dirPath, callback) {
+  private mobileReadFiles(
+    dirPath: string,
+    callback: (fileEntries: any) => void
+  ): void {
     const basePath = this.getDocumentDirectoryPath()
     const fullPath = basePath.endsWith('/')
       ? `${basePath}${dirPath}`
       : `${basePath}/${dirPath}`
-    window.resolveLocalFileSystemURL(fullPath, (dirEntry) => {
+    window.resolveLocalFileSystemURL(fullPath, (dirEntry: any) => {
       const reader = dirEntry.createReader()
       reader.readEntries(
-        (entries) => {
+        (entries: any) => {
           callback(entries)
         },
-        (error) => {
-          throw new Error(error)
+        (errorMsg: string) => {
+          throw new Error(errorMsg)
         }
       )
     })
   }
 
-  webReadFiles(dirPath, callback) {
+  private webReadFiles(
+    dirPath: string,
+    callback: (fileEntries: any) => void
+  ): void {
     console.log('TODO: create web based logic')
     console.log(dirPath, callback)
   }
@@ -89,7 +118,7 @@ class FileTransferUtil {
   /**
    * @description 파일 읽기
    */
-  readFile(fileName, callback) {
+  public readFile(fileName: string, callback: (content: string) => void): void {
     if (this.isMobileAvailable) {
       if (!this.intialized) {
         this.storageInitialize()
@@ -103,7 +132,10 @@ class FileTransferUtil {
   /**
    * @description 모바일 환경의 파일 읽기
    */
-  mobileReadFile(fileName, callback) {
+  private mobileReadFile(
+    fileName: string,
+    callback: (content: string) => void
+  ): void {
     const basePath = this.getDocumentDirectoryPath().endsWith('/')
       ? this.getDocumentDirectoryPath()
       : this.getDocumentDirectoryPath() + '/'
@@ -113,14 +145,17 @@ class FileTransferUtil {
     this.getDirEntry(fullPath)
       .then((dirEntry) => this.getFileEntry(dirEntry, fileName))
       .then((fileEntry) => this.readFileAsText(fileEntry))
-      .then((result) => callback(result))
+      .then((content: any) => callback(content))
       .catch((error) => console.error(error))
   }
 
   /**
    * @description 웹 환경의 파일 읽기
    */
-  webReadFile(fileName, callback) {
+  private webReadFile(
+    fileName: string,
+    callback: (content: string) => void
+  ): void {
     this.request(
       this.getReqUrl('read_file'),
       'POST',
@@ -128,7 +163,7 @@ class FileTransferUtil {
         fileName: fileName,
         filePath: this.getFilePath(),
       },
-      (event) => {
+      (event: any) => {
         callback(event.currentTarget.responseText)
       }
     )
@@ -137,7 +172,7 @@ class FileTransferUtil {
   /**
    * @description 파일 쓰기
    */
-  writeFile(fileName, content) {
+  public writeFile(fileName: string, content: string): void {
     if (this.isMobileAvailable) {
       if (!this.intialized) {
         this.storageInitialize()
@@ -151,7 +186,7 @@ class FileTransferUtil {
   /**
    * @description 모바일 환경의 파일 쓰기
    */
-  mobileWriteFile(fileName, content) {
+  private mobileWriteFile(fileName: string, content: string): void {
     const basePath = this.getDocumentDirectoryPath().endsWith('/')
       ? this.getDocumentDirectoryPath()
       : this.getDocumentDirectoryPath() + '/'
@@ -170,7 +205,7 @@ class FileTransferUtil {
   /**
    * @description 웹 환경의 파일 쓰기
    */
-  webWriteFile(fileName, content) {
+  private webWriteFile(fileName: string, content: string): void {
     this.request(
       this.getReqUrl('write_file'),
       'POST',
@@ -179,7 +214,7 @@ class FileTransferUtil {
         content: content,
         filePath: this.getFilePath(),
       },
-      (event) => {
+      (event: any) => {
         const response = JSON.parse(event.currentTarget.response)
         document.dispatchEvent(
           new CustomEvent('write-file-success', {
@@ -197,7 +232,7 @@ class FileTransferUtil {
   /**
    * @description 파일 삭제
    */
-  deleteFile(fileName) {
+  public deleteFile(fileName: string): void {
     if (this.isMobileAvailable) {
       if (!this.intialized) {
         this.storageInitialize()
@@ -211,7 +246,7 @@ class FileTransferUtil {
   /**
    * @description 모바일 환경의 파일 삭제
    */
-  mobileDeleteFile(fileName) {
+  private mobileDeleteFile(fileName: string): void {
     const basePath = this.getDocumentDirectoryPath().endsWith('/')
       ? this.getDocumentDirectoryPath()
       : this.getDocumentDirectoryPath() + '/'
@@ -227,7 +262,7 @@ class FileTransferUtil {
   /**
    * @description 웹 환경의 파일 삭제
    */
-  webDeleteFile(fileName) {
+  private webDeleteFile(fileName: string): void {
     this.request(
       this.getReqUrl('delete_file'),
       'POST',
@@ -235,7 +270,7 @@ class FileTransferUtil {
         fileName: fileName,
         filePath: this.getFilePath(),
       },
-      () => {
+      (event: any) => {
         const response = JSON.parse(event.currentTarget.response)
         document.dispatchEvent(
           new CustomEvent('delete-file-success', {
@@ -254,12 +289,12 @@ class FileTransferUtil {
    * @param {String} path 파일 패스
    * @returns {Object} dirEntry native directory entry
    */
-  getDirEntry(path) {
+  private getDirEntry(path: string): Promise<any> {
     return new Promise((resolve, reject) => {
       window.resolveLocalFileSystemURL(
         path,
-        (dirEntry) => resolve(dirEntry),
-        (error) => reject(error)
+        (dirEntry: any) => resolve(dirEntry),
+        (error: string) => reject(error)
       )
     })
   }
@@ -271,13 +306,13 @@ class FileTransferUtil {
    * @param {String} fileName file name
    * @returns {Object} fileEntry native file entry
    */
-  getFileEntry(dirEntry, fileName) {
+  private getFileEntry(dirEntry: any, fileName: string): Promise<any> {
     return new Promise((resolve, reject) => {
       dirEntry.getFile(
         fileName,
         { create: true, exclusive: false },
-        (fileEntry) => resolve(fileEntry),
-        (error) => reject(error)
+        (fileEntry: any) => resolve(fileEntry),
+        (error: string) => reject(error)
       )
     })
   }
@@ -288,11 +323,11 @@ class FileTransferUtil {
    * @param {Object} fileEntry native fileEntry
    * @returns {Object} fileWriter native fileWriter
    */
-  createWriter(fileEntry) {
+  private createWriter(fileEntry: any): Promise<any> {
     return new Promise((resolve, reject) => {
       fileEntry.createWriter(
-        (fileWriter) => resolve(fileWriter),
-        (error) => reject(error)
+        (fileWriter: any) => resolve(fileWriter),
+        (error: string) => reject(error)
       )
     })
   }
@@ -305,7 +340,12 @@ class FileTransferUtil {
    * @param {String} filePath file path
    * @param {String} content content
    */
-  writeContent(fileWriter, fileName, filePath, content) {
+  private writeContent(
+    fileWriter: any,
+    fileName: string,
+    filePath: string,
+    content: string
+  ): Promise<any> {
     return new Promise((resolve, reject) => {
       fileWriter.onwriteend = () => {
         document.dispatchEvent(
@@ -320,7 +360,7 @@ class FileTransferUtil {
         resolve()
       }
 
-      fileWriter.onerror = (error) => {
+      fileWriter.onerror = (error: string) => {
         document.dispatchEvent(
           new CustomEvent('write-file-error', {
             detail: {
@@ -340,9 +380,9 @@ class FileTransferUtil {
    * @description file entry의 파일을 text로 읽어 return
    * @param {Object} fileEntry native file entry
    */
-  readFileAsText(fileEntry) {
+  private readFileAsText(fileEntry: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      fileEntry.file((file) => {
+      fileEntry.file((file: any) => {
         const reader = new FileReader()
         reader.onloadend = () => {
           resolve(reader.result)
@@ -363,7 +403,7 @@ class FileTransferUtil {
    * @param {Object} fileEntry native file entry
    * @param {String} fileName remove target file name
    */
-  removeFile(fileEntry, fileName) {
+  private removeFile(fileEntry: any, fileName: string): Promise<any> {
     return new Promise((resolve, reject) => {
       fileEntry.remove(
         () => {
@@ -377,15 +417,15 @@ class FileTransferUtil {
 
           resolve()
         },
-        (error) => {
+        (error: string) => {
           reject(error)
         }
       )
     })
   }
 
-  getFilePath() {
-    let filePath = window.CONST.FILE.PATH
+  private getFilePath(): string {
+    let filePath: string = File.PATH
     if (!filePath.endsWith('/')) {
       filePath += '/'
     }
@@ -393,10 +433,11 @@ class FileTransferUtil {
     return filePath
   }
 
-  getReqUrl(api) {
-    let baseUrl = window.CONST.SERVER.BASE_URL
+  private getReqUrl(api: string): string {
+    let baseUrl: string = Server.BASE_URL
     if (baseUrl.endsWith('/')) {
-      baseUrl = baseUrl.substr(0, test.length - 1)
+      // baseUrl = baseUrl.substr(0, test.length - 1)
+      baseUrl = baseUrl.substr(0, baseUrl.length - 1)
     }
     if (api.startsWith('/')) {
       api = api.substr(1)
@@ -404,7 +445,12 @@ class FileTransferUtil {
     return `${baseUrl}/${api}`
   }
 
-  request(url, method, body, callback) {
+  private request(
+    url: string,
+    method: string,
+    body: any,
+    callback: (event: any) => void
+  ): void {
     const xhr = new XMLHttpRequest()
     xhr.open(method, url, true)
     if (method.toLowerCase() === 'post' || 'put') {
