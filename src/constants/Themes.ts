@@ -38,6 +38,7 @@ export type ThemeObj = {
 }
 
 export type ThemeColorSet = {
+  [key: string]: string
   ['--main-theme-color']: string
   ['--main-theme-light']: string
   ['--main-theme-dark']: string
